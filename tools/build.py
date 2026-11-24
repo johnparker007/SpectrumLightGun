@@ -54,6 +54,30 @@ def pack_engine(data):
     return bytes(output)+b"\0"
 
 
+def arcade_font(source):
+    """Pack the native 8x8 BDF cells as eight Spectrum bitmap rows per glyph."""
+    codes = range(32, 96)
+    bdf = source.read_text(encoding="ascii")
+    records = re.findall(
+        r"^ENCODING (\d+)\nSWIDTH [^\n]+\nDWIDTH 8 0\nBBX ([^\n]+)\nBITMAP\n([0-9A-F\n]+)ENDCHAR$",
+        bdf, re.MULTILINE,
+    )
+    glyphs = {}
+    for encoding, bounds, bitmap in records:
+        number = int(encoding)
+        if number not in codes:
+            continue
+        width, height, x, y = map(int, bounds.split())
+        rows = bytes.fromhex(bitmap)
+        top = 8 - y - height
+        if x < 0 or y < 0 or x + width > 8 or top < 0 or len(rows) != height:
+            raise ValueError(f"Arcade font glyph {number} exceeds its 8x8 cell")
+        glyphs[number] = bytes(top) + bytes(row >> x for row in rows) + bytes(y)
+    if len(glyphs) != len(codes):
+        raise ValueError("The arcade font must supply ASCII glyphs 32 through 95")
+    return b"".join(glyphs[number] for number in codes)
+
+
 def build(assembler, output, dx=0, dy=0, symbols=None, snapshot=None, edges=False, grid=False, arcade=False):
     if max(abs(dx), abs(dy)) > 255:
         raise ValueError("Offsets must fit -255..255 pixels")
@@ -61,6 +85,7 @@ def build(assembler, output, dx=0, dy=0, symbols=None, snapshot=None, edges=Fals
         work = Path(tmp)
         if arcade:
             z88dk = Path(os.getenv("Z88DK", "C:/z88dk"))
+            (work/"arcade-font.bin").write_bytes(arcade_font(ROOT/"art/fonts/Blokius-Arcade-8.bdf"))
             zx7 = shutil.which("z88dk-zx7") or z88dk/"bin/z88dk-zx7.exe"
             scenes = []
             raw_size = 0

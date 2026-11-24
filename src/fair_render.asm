@@ -144,7 +144,7 @@ arc_ticket_ends:
     djnz .stripe
     ret
 
-; Double-width, double-height ROM type with a two-colour marquee.
+; Double-width, double-height arcade type with a two-colour marquee.
 arc_marquee:
     call arc_attr
 .letter:
@@ -172,7 +172,7 @@ arc_marquee:
     add hl,hl
     add hl,hl
     add hl,hl
-    ld bc,$3c00
+    ld bc,arc_font_base
     add hl,bc
     ld b,8
 .line:

@@ -70,7 +70,7 @@ arc_pixel:
     ld h,a
     ret
 
-; IX=NUL-terminated ROM text, DE=position, A=colour.
+; IX=NUL-terminated arcade text, DE=position, A=colour.
 arc_text:
     ld (arc_ink),a
     call arc_attr
@@ -91,7 +91,7 @@ arc_text:
     add hl,hl
     add hl,hl
     add hl,hl
-    ld bc,$3c00
+    ld bc,arc_font_base
     add hl,bc
     ld b,8
 .line:
@@ -800,3 +800,7 @@ arc_noise_left: db 0
 arc_note: db 0
 arc_beat: db 1
 arc_ink: db 0
+
+; Blokius Arcade 8 starts at ASCII space. Both renderers index by ASCII * 8.
+arc_font_base equ $ - 32*8
+    incbin "arcade-font.bin"

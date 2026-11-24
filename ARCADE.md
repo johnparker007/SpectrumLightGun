@@ -54,6 +54,8 @@ The arcade reference pairs short challenges with explicit goals and a result bet
 
 ## Timing, graphics and sound
 
+Menu tickets, briefings, scores and the HUD use Blokius Arcade 8 from Spectrum Attribute Shmup. Its 512-byte bitmap adapts Cody Boisclair’s Press Start 2P. [Font source and SIL Open Font License](art/fonts/)
+
 The game builds the scene on screen 5 and presents a separate optical mask on screen 7. The current target's entire 16×16 footprint is selectable. In the yard, set bitmap pixels on screen 7 belong exclusively to live bombs. The first mask lights live cans with attributes. After a dark capture, one fixed-cost attribute fill exposes the bomb bitmap on the very next frame. An already-high input at the start is ambiguous and consumes a shot. A first-pass hit ends acquisition immediately after that raster. A shot freezes animation, and each pass supplies its own Y reading.
 
 During capture the ULA displays screen 7 while the CPU maps uncontended bank 0 at C000 and runs from bank 2. Neither renderer nor the AY player runs during acquisition. Each raster stores the first level and combined levels of ten reads per scanline. The input port is FFFD for all reads. R7 leaves the AUX port in input mode. The player emits precomputed tone periods on AY channels A/B and software-decayed noise on C for shots and blasts. It reselects R14 after every audio update. This uses the Shmup's division of AY channels and precompiled register approach with a new short score.

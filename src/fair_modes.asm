@@ -575,7 +575,7 @@ mode_show_time:
     ld ix,mode_seconds
     ld de,$0011
     jp arc_text
-mode_seconds: db " 0s",0
+mode_seconds: db " 0S",0
 mode_expired: db 0
 mode_seconds_left: db 0
 mode_clockdown: db 50
