@@ -22,7 +22,7 @@ def check(model, args):
         assert tape == (ROOT/"build/arcade.tap").read_bytes()
         (work/"arc.bin").write_bytes(payload)
         names = ("entry", "arc_poll", "arc_poll_end", "first_ini", "grid_reads_end", "arc_state",
-                 "arc_stage", "mode_seconds_left", "mode_expired", "arc_tour", "mode_gate", "arc_note", "arc_total", "arc_ammo", "arc_hits", "arc_pos", "arc_hazards", "arc_armed",
+                 "arc_stage", "nv_previous_ink", "mode_seconds_left", "mode_expired", "arc_tour", "mode_gate", "arc_note", "arc_total", "arc_ammo", "arc_hits", "arc_pos", "arc_hazards", "arc_armed",
                  "parade_last", "arc_wave_phase", "arc_raw_y", "arc_last_tick", "frame", "arc_alive")
         symbols = dict(re.findall(r"^(\w+): EQU (0x[0-9A-Fa-f]+)$", (work/"arc.sym").read_text(), re.M))
         (work/"labels.lua").write_text("return {"+",".join(k+"="+symbols[k] for k in names)+"}")

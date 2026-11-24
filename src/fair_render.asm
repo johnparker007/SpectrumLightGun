@@ -237,6 +237,15 @@ nv_slot:
     call arc_nv_bank
     pop af
     and 7
+    jr nz,.paint
+    ld a,(arc_stage)
+    cp 16
+    jr c,.dark
+    pop de
+    jp fair_restore_slot
+.dark:
+    xor a
+.paint:
     ld l,a
     ld h,0
     add hl,hl

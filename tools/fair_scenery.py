@@ -1,4 +1,4 @@
-"""Compile the sixteen fairground backdrops into 8x8 bitmap / 8x2 colour tiles."""
+"""Compile the 64 fairground backdrops into 8x8 bitmap / 8x2 colour tiles."""
 import math
 from collections import Counter
 from gallery_sets import gallery

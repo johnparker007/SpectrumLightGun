@@ -60,15 +60,23 @@ def build(assembler, output, dx=0, dy=0, symbols=None, snapshot=None, edges=Fals
     with tempfile.TemporaryDirectory() as tmp:
         work = Path(tmp)
         if arcade:
+            z88dk = Path(os.getenv("Z88DK", "C:/z88dk"))
+            zx7 = shutil.which("z88dk-zx7") or z88dk/"bin/z88dk-zx7.exe"
             scenes = []
+            raw_size = 0
             for scene in write_scenery(work, ROOT):
-                packed = pack_engine(scene)
+                source, packed_file = work/"scene.bin", work/"scene.zx7"
+                source.write_bytes(scene)
+                subprocess.run([zx7,"-f",source,packed_file], stdout=subprocess.DEVNULL, check=True)
+                packed = packed_file.read_bytes()
+                raw_size += len(scene)
                 if len(scene) > 0xdb09 - 0xc000 or len(packed) > 0x1800:
                     raise ValueError("Backdrop exceeds runtime staging space")
                 scenes.append(packed)
             banks = [make_bank(scenes[i:i+16]) for i in range(0,len(scenes),16)]
+            print(f"ZX7 scenery: {raw_size} -> {sum(map(len, scenes))} bytes; banks including directories: {list(map(len,banks))}")
             artwork = banks.pop(0)
-            if not 0x1800 < len(artwork) <= 0x3800:
+            if len(artwork) > 0x3800:
                 raise ValueError("Artwork does not fit startup staging areas")
             (work/"art_size.inc").write_text(f"art_size equ {len(artwork)}\n")
             make_tables(work)

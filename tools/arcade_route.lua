@@ -106,19 +106,32 @@ local function check(ok,msg)
 end
 -- After active play (and erase passes), every painted scenery pixel must
 -- still be present in the normal display bitmap.
+local pending_backdrop
 local function check_backdrop(name)
     local file=assert(io.open(name..".tiles","rb"))
     local tiles=file:read("*a")
     file:close()
+    local expansion=byte("arc_stage")>=16
+    local covered={}
+    if expansion then
+        for slot=0,3 do
+            if (mem:read_u8(s.nv_previous_ink+slot) & 7)~=0 then
+                local first=mem:read_u8(s.arc_pos+slot*2)+(mem:read_u8(s.arc_pos+slot*2+1)-1)*32
+                for _,offset in ipairs({0,1,32,33}) do covered[first+offset]=true end
+            end
+        end
+    end
     for cell=0,703 do
         local tile=tiles:byte(1+cell)
-        if tile~=0 then
+        if not covered[cell] and (expansion or tile~=0) then
             local col=cell%32
             for scan=0,7 do
                 local y=8+(cell//32)*8+scan
                 local addr=0x4000+((y & 0xc0)<<5)+((y & 7)<<8)+((y & 0x38)<<2)+col
                 local expected=tiles:byte(705+12*tile+scan)
-                check((mem:read_u8(addr) & expected)==expected,"erased "..name.." scenery")
+                local actual=mem:read_u8(addr)
+                if expansion then check(actual==expected,"backdrop "..name.." cell "..cell)
+                else check((actual & expected)==expected,"erased "..name.." scenery") end
             end
         end
     end
@@ -160,6 +173,10 @@ end)
 taps[4]=ioport:install_read_tap(0xfffd,0xfffd,"gun",function(_,v)
     local pc=cpu.state.PC.value
     if pc>=s.arc_poll and pc<s.arc_poll_end then
+        if pending_backdrop then
+            check_backdrop(pending_backdrop)
+            pending_backdrop=nil
+        end
         check(reg==14,"AY register during trigger poll")
         if held and route[step][1]<0 then
             local slot=s.arc_pos+2*(-route[step][1]-1)
@@ -266,7 +283,7 @@ emu.register_frame_done(function()
     local stage=byte("arc_stage")
     if byte("arc_tour")==1 and byte("arc_state")==1 then
         local name=stage==1 and "yard" or stage==2 and "midway" or string.format("stage%02d",stage)
-        check_backdrop(name)
+        pending_backdrop=name
         if not scenes[stage] then
             snapshot(string.format("stage-%02d",stage+1))
             scenes[stage]=true
