@@ -9,6 +9,7 @@ import zlib
 from pathlib import Path
 
 from build import ROOT, assembler_path, build
+from fair_banks import emulator_files
 from verify import unpack_tape
 
 
@@ -54,7 +55,8 @@ def main():
         rompath = find_roms(args.rompath, mame, work, args.model)
         sym, tap = work/"magnum.sym", work/"magnum.tap"
         build(args.assembler, tap, symbols=sym, grid=args.grid, arcade=args.arcade)
-        (work/"magnum.bin").write_bytes(unpack_tape(tap.read_bytes()))
+        data = tap.read_bytes()
+        (work/"magnum.bin").write_bytes(emulator_files(data,work) if args.arcade else unpack_tape(data))
         labels = dict(re.findall(r"^(\w+): EQU (0x[0-9A-Fa-f]+)$", sym.read_text(), re.M))
         names = ("entry", "rearm", "shot", "first_ini", "phase", "status", "shown_x", "shown_y")
         if args.arcade:

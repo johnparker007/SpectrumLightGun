@@ -174,6 +174,7 @@ arc_begin:
     ld bc,8
     ldir
     call parade_install
+    call extra_layout
     call modes_setup
     ld hl,$ffff
     ld (nv_previous_ink),hl
@@ -195,7 +196,7 @@ arc_begin:
     ld de,$0016
     ld a,6
     call arc_text
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     call mode_hint
     ld de,$1701
     ld a,7
@@ -205,7 +206,7 @@ arc_begin:
     ld a,(mode_seconds_left)
     or a
     call nz,mode_show_time
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 1
     call z,arc_nv_sync
 arc_enter:
@@ -235,7 +236,7 @@ arc_poll_end:
     ld a,(arc_state)
     cp 1
     jr nz,.mask_ready
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 13
     jr nz,.wave
     ld a,(mode_gate)
@@ -266,7 +267,7 @@ arc_poll_end:
 .check_bombs:
     cp $ff                      ; only a wholly dark target frame qualifies
     jr nz,.finish
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 1
     jr nz,.finish
     ld hl,$db00                 ; all attributes white ink on black paper;
@@ -299,7 +300,7 @@ arc_poll_end:
     cp $db
     call z,arc_reset_mask
     call mode_draw
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 1
     call z,arc_nv_sync
     ld a,(arc_blast)
@@ -401,7 +402,7 @@ arc_card_shot:
     ld hl,mode_page
     inc (hl)
     ld a,(hl)
-    cp 5
+    cp 17
     jp c,arc_menu
     ld (hl),0
     jp arc_menu
@@ -421,7 +422,7 @@ arc_card_shot:
     ld hl,arc_stage
     inc (hl)
     ld a,(hl)
-    cp 16
+    cp 64
     jp c,arc_briefing
     jp arc_menu
 
@@ -466,10 +467,19 @@ arc_result:
     ld (hl),a
     ld ix,next_label
     ld a,(arc_stage)
-    cp 15
+    cp 63
     jr nz,.buttons
     ld a,(arc_total)
     ld hl,tour_digits
+    ld (hl),'0'
+.hundreds:
+    cp 100
+    jr c,.two
+    inc (hl)
+    sub 100
+    jr .hundreds
+.two:
+    inc hl
     ld (hl),'0'
 .tens:
     cp 10
@@ -514,7 +524,7 @@ arc_tick:
     pop hl                     ; arc_idle called arc_tick; the round has ended
     jp arc_result
 .running:
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 2
     jp z,parade_frame
     call mode_tick
@@ -552,7 +562,7 @@ arc_objects:
     call mode_mask_ink
 .target:
     call arc_square
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 1
     call z,arc_bombs
     inc ix
@@ -755,11 +765,11 @@ arc_song:                       ; compiled AY periods, channels A and B
     dw 424,1695, 336,1695, 283,1131, 336,1131
     dw 378,1509, 318,1509, 252,1008, 318,1008
 fair_title: db "RASTER FAIR",0
-tour_label: db "PLAY ALL SIXTEEN",0
+tour_label: db "PLAY ALL 64",0
 next_label: db "NEXT CHALLENGE",0
 finish_label: db "FINISH TOUR",0
 total_label: db "FAIR TOTAL  "
-tour_digits: db "00 / 61",0
+tour_digits: db "000 / 245",0
 arc_total: db 0
 arc_tour: db 0
 ammo_label: db "SHOTS",0
@@ -775,6 +785,7 @@ arc_initial_pos: db 19,4, 3,9, 27,14, 19,19
 arc_pos: defs 8
 arc_alive: defs 4
 arc_hazards: defs 4
+arc_rule: db 0
 arc_stage: db 0
 arc_state: db 0
 arc_ammo: db 0

@@ -9,6 +9,7 @@ from html import escape
 from pathlib import Path
 
 from fair_scenery import write_scenery
+from expansion import LEVELS
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -47,6 +48,7 @@ def main():
     parser.add_argument("--output", type=Path, default=ROOT/"build/scenery-preview.html")
     args = parser.parse_args()
     titles = dict(re.findall(r'^titles_(\d+): db "([^"]+)"', (ROOT/"src/fair_modes.asm").read_text(), re.M))
+    titles.update({str(i):title for i,(title,rule) in enumerate(LEVELS,16)})
     with tempfile.TemporaryDirectory() as directory:
         scenes = write_scenery(Path(directory), ROOT)
     html = ['''<!doctype html><html lang="en"><meta charset="utf-8">

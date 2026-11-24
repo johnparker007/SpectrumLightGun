@@ -2,6 +2,7 @@
 import math
 from collections import Counter
 from gallery_sets import gallery
+from expansion import expansion_scene, LEVELS
 
 
 class Scene:
@@ -165,11 +166,13 @@ def write_scenery(work, root):
     path=(root/"src/parade.asm").read_text().split("parade_x:",1)[1].splitlines()[1]
     xs=[int(value) for value in path.split("db",1)[1].split(",")]
     scenes=[]
-    for stage in range(16):
+    for stage in range(16+len(LEVELS)):
         if stage==1:
             name,scene="yard",powder_yard()
         elif stage==2:
             name,scene="midway",midway(xs)
+        elif stage>=16:
+            name,scene=f"stage{stage:02}",expansion_scene(Scene(),stage-16)
         else:
             name,scene=f"stage{stage:02}",gallery(Scene(),stage)
         data=compile_scene(scene)

@@ -2,6 +2,14 @@ local m=manager.machine
 local cpu=m.devices[":maincpu"]
 local mem, ioport=cpu.spaces.program,cpu.spaces.io
 local s=dofile("labels.lua")
+for _,bank in ipairs({1,4,6}) do
+    local f=assert(io.open("bank"..bank..".bin","rb"))
+    local data=f:read("*a")
+    f:close()
+    ioport:write_u8(0x7ffd,16+bank)
+    for i=1,#data do mem:write_u8(0xbfff+i,data:byte(i)) end
+end
+ioport:write_u8(0x7ffd,16)
 local f=assert(io.open("arc.bin","rb"))
 local data=f:read("*a")
 f:close()
@@ -30,16 +38,20 @@ local special={
     [2]={{1,2,3},{1,2,3}}, [4]={{1,1,2,2,3,3,4,4},{0,1,1,2,2,3,3,4}},
     [5]={{1,4},{2,4}}, [9]={{3},{1}}, [10]={{1,2},{2,4}},
     [12]={{1,4,3,2},{1,2,3,4}}, [15]={{1,4},{1,5}}}
-for stage=0,15 do
-    local rule=special[stage] or {{1,2,3,4},{1,2,3,4}}
+local types=dofile("rules.lua")
+local function kind(stage) return types[stage+1] end
+local tour_max=0
+for stage=0,63 do
+    local rule=special[kind(stage)] or {{1,2,3,4},{1,2,3,4}}
+    tour_max=tour_max+rule[2][#rule[2]]
     for n,actor in ipairs(rule[1]) do
-        table.insert(route,{-actor,0,1,n==#rule[1] and 2 or 1,stage,rule[2][n],rounds[stage+1]-n})
+        table.insert(route,{-actor,0,1,n==#rule[1] and 2 or 1,stage,rule[2][n],rounds[kind(stage)+1]-n})
     end
-    if stage<15 then table.insert(route,{80,60,1,1,stage+1,0,rounds[stage+2]}) end
+    if stage<63 then table.insert(route,{80,60,1,1,stage+1,0,rounds[kind(stage+1)+1]}) end
 end
-table.insert(route,{80,60,1,0,16,5,0})
+table.insert(route,{80,60,1,0,64,4,2})
 -- Visit all five pages and enter the last practice ticket.
-for page=1,4 do table.insert(route,{80,25,1,0,16,5,0}) end
+for page=1,4 do table.insert(route,{80,25,1,0,64,4,2}) end
 table.insert(route,{80,48,1,1,15,0,2})
 table.insert(route,{-4,0,1,1,15,4,1})
 table.insert(route,{-3,0,1,2,15,0,0}) -- overshoot
@@ -47,11 +59,11 @@ local function add(x,y,masks,state,stage,hits,ammo)
     table.insert(route,{x,y,masks,state,stage,hits,ammo})
 end
 add(100,104,1,0,15,0,0)
-for i=1,4 do add(80,25,1,0,15,0,0) end -- page four
+for i=1,16 do add(80,25,1,0,15,0,0) end -- page four
 add(80,172,1,1,14,0,6)
 local timeout_step=#route
 add(80,104,1,0,14,0,6) -- after timer expires, leave results
-for i=1,4 do add(80,25,1,0,14,0,6) end -- page three
+for i=1,16 do add(80,25,1,0,14,0,6) end -- page three
 add(80,90,1,1,8,0,6)
 local shield_step=#route
 add(-1,0,1,1,8,0,5)
@@ -66,8 +78,13 @@ local function timed_stage(page_clicks, previous, hits, ammo, y, stage, shots, s
     add(80,104,1,0,stage,0,shots)
 end
 timed_stage(1,8,4,1,90,12,5,10)
-timed_stage(3,12,0,5,172,6,6,12)
-timed_stage(4,6,0,6,172,2,4,15)
+timed_stage(15,12,0,5,172,6,6,12)
+timed_stage(16,6,0,6,172,2,4,15)
+-- The final practice page has a single live ticket. Shoot the empty
+-- second row, then enter the last level directly without starting a tour.
+for i=1,16 do add(80,25,1,0,2,0,4) end
+add(80,90,1,0,2,0,4)
+add(80,48,1,1,63,0,6)
 local briefing_phase,briefing_wait=0,0
 local briefs,scenes={},{}
 local function snapshot(title)
@@ -221,12 +238,12 @@ emu.register_frame_done(function()
             check(mem:read_u8(s.arc_hazards+1)==0,"bomb lane")
             check_backdrop("yard")
         end
-        if byte("arc_tour")==1 and byte("arc_stage")==16 then check(byte("arc_total")==61,"tour score") end
+        if byte("arc_tour")==1 and byte("arc_stage")==64 then check(byte("arc_total")==tour_max,"tour score") end
         if timed_entries[step] then
             check(byte("mode_seconds_left")==timed_entries[step],"timer initial value")
             timer_start=frames
         end
-        if step==#route then for id=0,15 do check(briefs[id] and scenes[id],"missing briefing or scene "..id) end;check(noise>=step and music>2,"audio writes");log("PASS");m:exit();return end
+        if step==#route then for id=0,63 do check(briefs[id] and scenes[id],"missing briefing or scene "..id) end;check(noise>=step and music>2,"audio writes");log("PASS");m:exit();return end
         waiting=false
     end
     -- Let each scene render before shooting it.
@@ -256,9 +273,9 @@ emu.register_frame_done(function()
         end
     end
     local nextshot=route[step+1]
-    if nextshot and nextshot[1]<0 and byte("arc_stage")==13 and byte("mode_gate")==0 then return end
-    if nextshot and nextshot[1]<0 and byte("arc_stage")==6 and byte("mode_gate")~=-nextshot[1]-1 then return end
-    if step~=shield_step and nextshot and nextshot[1]<0 and byte("arc_stage")==8 and byte("mode_gate")~=0 then return end
+    if nextshot and nextshot[1]<0 and kind(byte("arc_stage"))==13 and byte("mode_gate")==0 then return end
+    if nextshot and nextshot[1]<0 and kind(byte("arc_stage"))==6 and byte("mode_gate")~=-nextshot[1]-1 then return end
+    if step~=shield_step and nextshot and nextshot[1]<0 and kind(byte("arc_stage"))==8 and byte("mode_gate")~=0 then return end
     local card=({[0]="menu",[2]="yard",[14]="wave",[17]="results"})[step]
     if card then snapshot(card) end
     step=step+1

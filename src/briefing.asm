@@ -1,6 +1,14 @@
 ; All practice, replay and tour entries share this stationary briefing.
 ; Only the start ticket is present on the optical screen.
 arc_briefing:
+    ld a,(arc_stage)
+    cp 16
+    jr c,.rule
+    sub 16
+    ld hl,extra_rules
+    call extra_byte
+.rule:
+    ld (arc_rule),a
     call arc_clear
     ld a,3
     ld (arc_state),a
@@ -13,7 +21,7 @@ arc_briefing:
     ld bc,$051e
     ld a,$38
     call brief_panel
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     ld hl,brief_rules
     call mode_string
     ld de,$0602
@@ -40,7 +48,7 @@ arc_briefing:
     ld de,$0d13
     ld a,$5f
     call arc_text
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     ld e,a
     ld d,0
     ld hl,mode_rounds
@@ -64,12 +72,7 @@ arc_briefing:
     ld bc,$0202
     ld a,$57
     call brief_panel
-    ld a,(arc_stage)
-    ld e,a
-    ld d,0
-    ld hl,mode_limits
-    add hl,de
-    ld a,(hl)
+    call stage_time_limit
     or a
     jr z,.open
     ld hl,brief_time
@@ -94,12 +97,7 @@ arc_briefing:
     ld a,$5f
     call brief_panel
     ld ix,brief_secs
-    ld a,(arc_stage)
-    ld e,a
-    ld d,0
-    ld hl,mode_limits
-    add hl,de
-    ld a,(hl)
+    call stage_time_limit
     or a
     jr nz,.unit
     ld ix,brief_unlimited
@@ -109,7 +107,7 @@ arc_briefing:
     call arc_text
 
     ; Show the stage sprite beside the objective; the yard also shows the hazard.
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     ld e,a
     ld d,0
     ld hl,mode_icons
@@ -118,14 +116,14 @@ arc_briefing:
     ld e,(hl)
     inc hl
     ld d,(hl)
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 2
     jr nz,.picture
     ld de,brief_balloon
 .picture:
     ld hl,$5862                 ; lower edge of heading
     call brief_icon
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 1
     jr nz,.start
     ld de,arc_bomb

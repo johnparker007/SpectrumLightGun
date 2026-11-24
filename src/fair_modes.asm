@@ -1,8 +1,17 @@
 ; Four practice tickets per page. A fifth, shallow strip advances the page.
 modes_menu:
     ld a,(mode_page)
-    add a,'1'
-    ld (page_digit),a
+    inc a
+    ld hl,page_digit
+    ld (hl),' '
+    cp 10
+    jr c,.units
+    ld (hl),'1'
+    sub 10
+.units:
+    add a,'0'
+    inc hl
+    ld (hl),a
     ld de,$0204
     ld ix,page_label
     call arc_card
@@ -29,7 +38,7 @@ modes_menu:
     ld ix,tour_label
     jr z,.card
     dec a
-    cp 16
+    cp 64
     jr nc,.end
     call mode_title
 .card:
@@ -78,12 +87,18 @@ mode_choice:
     ret
 .practice:
     dec a
-    cp 16
+    cp 64
     ret c
     ld a,$ff
     ret
 
 mode_title:
+    cp 16
+    jr c,.original
+    sub 16
+    ld hl,extra_titles
+    jr mode_string
+.original:
     ld hl,mode_titles
     jr mode_string
 mode_hint:
@@ -111,12 +126,12 @@ modes_setup:
     ld (mode_sum_digit),a
     ld a,1
     ld (arc_alive+3),a
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     ld e,a
     ld d,0
-    ld hl,mode_limits
-    add hl,de
-    ld a,(hl)
+    push de
+    call stage_time_limit
+    pop de
     ld (mode_seconds_left),a
     ld a,50
     ld (mode_clockdown),a
@@ -128,7 +143,7 @@ modes_setup:
     add hl,de
     ld a,(hl)
     ld (arc_goal),a
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     add a,a
     ld e,a
     ld hl,mode_icons
@@ -137,7 +152,7 @@ modes_setup:
     inc hl
     ld d,(hl)
     ld (mode_art),de
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 1
     ret z
     cp 2
@@ -159,7 +174,7 @@ modes_setup:
     ld (arc_alive+1),a
     ld (arc_alive+3),a
 .clock:
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 13
     ret nz
     ; Rotate the remembered rack differently on successive visits.
@@ -185,7 +200,7 @@ modes_setup:
     ret
 
 mode_draw:
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 2
     jp z,parade_unmask
     cp 1
@@ -264,7 +279,7 @@ mode_colour:
     or a
     sbc hl,de
     ld e,l                      ; lane number
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 4
     jr z,.armour
     cp 10
@@ -352,7 +367,7 @@ mode_hit:
     ld a,(hl)
     or a
     ret z
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 4
     jr z,.armour
     cp 5
@@ -429,7 +444,7 @@ mode_hit:
     ret
 
 mode_tick:
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 3
     ret c
     ld hl,mode_clock
@@ -497,7 +512,7 @@ mode_tick:
     jp mode_draw
 
 mode_after_shot:
-    ld a,(arc_stage)
+    ld a,(arc_rule)
     cp 7
     jr nz,.pay
     ld hl,arc_pos
@@ -581,7 +596,7 @@ mode_star: db 1,128,3,192,3,192,7,224,127,254,255,255,63,252,31,248,15,240,31,24
 mode_bell: db 3,192,7,224,15,240,31,248,31,248,31,248,31,248,31,248,63,252,63,252,127,254,255,255,0,0,3,192,3,192,1,128
 mode_sum_digit: db "0",0
 page_label: db "MORE GAMES   "
-page_digit: db "1/5",0
+page_digit: db " 1/17",0
 mode_titles: dw titles_0,titles_1,titles_2,titles_3,titles_4,titles_5,titles_6,titles_7,titles_8,titles_9,titles_10,titles_11,titles_12,titles_13,titles_14,titles_15
 titles_0: db "TIN CAN ALLEY",0
 titles_1: db "THE POWDER YARD",0
@@ -628,3 +643,43 @@ mode_weight: db $03,$c0,$03,$c0,$03,$c0,$03,$c0,$03,$c0,$03,$c0,$0f,$f0,$0f,$f0,
 mode_coin: db $0f,$f0,$0f,$f0,$3c,$3c,$3c,$3c,$f3,$cf,$f3,$cf,$f3,$0f,$f3,$0f,$f0,$cf,$f0,$cf,$f3,$cf,$f3,$cf,$3c,$3c,$3c,$3c,$0f,$f0,$0f,$f0
 mode_eye: db $00,$00,$00,$00,$0f,$f0,$0f,$f0,$3f,$fc,$3f,$fc,$f3,$cf,$f3,$cf,$f3,$cf,$f3,$cf,$3f,$fc,$3f,$fc,$0f,$f0,$0f,$f0,$00,$00,$00,$00
 mode_fuse: db $00,$33,$00,$33,$03,$cc,$03,$cc,$0f,$00,$0f,$00,$3f,$fc,$3f,$fc,$ff,$ff,$ff,$ff,$cf,$f3,$cf,$f3,$3f,$fc,$3f,$fc,$0f,$f0,$0f,$f0
+
+    include "extra.inc"
+
+extra_byte:
+    ld e,a
+    ld d,0
+    add hl,de
+    ld a,(hl)
+    ret
+
+extra_layout:
+    ld a,(arc_stage)
+    cp 16
+    ret c
+    sub 16
+    add a,a
+    add a,a
+    ld e,a
+    ld d,0
+    ld hl,extra_columns
+    add hl,de
+    ld de,arc_pos
+    ld b,4
+.copy:
+    ld a,(hl)
+    ld (de),a
+    inc hl
+    inc de
+    inc de
+    djnz .copy
+    ret
+
+stage_time_limit:
+    ld a,(arc_stage)
+    ld hl,mode_limits
+    cp 16
+    jr c,extra_byte
+    sub 16
+    ld hl,extra_limits
+    jr extra_byte

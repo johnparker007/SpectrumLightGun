@@ -1,6 +1,6 @@
 # Spectrum Lightgun
 
-Play **[Raster Fair](build/arcade.tap)** for the gun-controlled sixteen-challenge arcade. Every challenge has its own NIRVANA+ playfield. [See all sixteen stages](build/screenshots/arcade-gallery.png). **Play-Arcade.bat** starts the MAME mouse version. [Controls, frontend plan and CRT test](ARCADE.md).
+Play **[Raster Fair](build/arcade.tap)** for the gun-controlled 64-challenge arcade. Every challenge has its own NIRVANA+ playfield. [See all 64 stages](build/screenshots/arcade-gallery.png). **Play-Arcade.bat** starts the MAME mouse version. [Controls, frontend plan and CRT test](ARCADE.md).
 
 Load **[magnum.tap](build/magnum.tap)** on a PAL grey +2, black +2A or +3 connected to a CRT. The tape starts in uncalibrated trigger mode with a black preframe (PRE 1). The experiment measures whether one raster can distinguish aim points 40 pixels apart. On one real +2A/CRT setup the operator reported reliable off-screen misses, over 75% HIGH on-screen, and widely separated X estimates at fixed aim. These are initial observations; no raw traces or exact attempt counts accompanied the report.
 

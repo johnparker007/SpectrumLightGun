@@ -25,11 +25,20 @@ fair_store_art:
 fair_art_stored:
     ret
 
+fair_banks: db 19,17,20,22
 fair_backdrop:
+    ld a,(arc_stage)
+    rrca
+    rrca
+    rrca
+    rrca
+    and 3
+    ld hl,fair_banks
+    call extra_byte
     ld bc,$7ffd
-    ld a,19
     out (c),a
     ld a,(arc_stage)
+    and 15
     add a,a
     add a,a
     ld l,a

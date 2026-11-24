@@ -3,6 +3,16 @@ local machine = manager.machine
 local cpu = machine.devices[":maincpu"]
 local mem = cpu.spaces["program"]
 local labels = dofile("labels.lua")
+if labels.arcade_start then
+for _,bank in ipairs({1,4,6}) do
+    local f=assert(io.open("bank"..bank..".bin","rb"))
+    local data=f:read("*a")
+    f:close()
+    cpu.spaces.io:write_u8(0x7ffd,16+bank)
+    for i=1,#data do mem:write_u8(0xbfff+i,data:byte(i)) end
+end
+cpu.spaces.io:write_u8(0x7ffd,16)
+end
 local f = assert(io.open("magnum.bin", "rb"))
 local image = f:read("*a")
 f:close()

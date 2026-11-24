@@ -10,6 +10,7 @@ import tempfile
 from functools import reduce
 from pathlib import Path
 
+from fair_banks import make_bank, make_tables, bank_loader
 from fair_scenery import write_scenery
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,15 +66,12 @@ def build(assembler, output, dx=0, dy=0, symbols=None, snapshot=None, edges=Fals
                 if len(scene) > 0xdb09 - 0xc000 or len(packed) > 0x1800:
                     raise ValueError("Backdrop exceeds runtime staging space")
                 scenes.append(packed)
-            offset = 4*len(scenes)
-            directory = bytearray()
-            for scene in scenes:
-                directory.extend(struct.pack("<HH", 0xc000+offset, len(scene)))
-                offset += len(scene)
-            artwork = directory + b"".join(scenes)
+            banks = [make_bank(scenes[i:i+16]) for i in range(0,len(scenes),16)]
+            artwork = banks.pop(0)
             if not 0x1800 < len(artwork) <= 0x3800:
                 raise ValueError("Artwork does not fit startup staging areas")
-            (work/"art_size.inc").write_text(f"art_size equ {offset}\n")
+            (work/"art_size.inc").write_text(f"art_size equ {len(artwork)}\n")
+            make_tables(work)
         subprocess.run([str(assembler), "--nologo", "--raw=main.bin", "--sym=main.sym",
                         *(["-DARCADE=1"] if arcade else []), *(["-DGRID_GAME=1"] if grid or arcade else []), *(["-DEDGE_DIAG=1"] if edges else []), f"-DOFFSET_X={dx}", f"-DOFFSET_Y={dy}", str(ROOT/"src/magnum.asm")],
                        cwd=work, check=True)
@@ -116,9 +114,10 @@ def build(assembler, output, dx=0, dy=0, symbols=None, snapshot=None, edges=Fals
     line = b'\xfd\xb0"32767":\xef""\xaf:\xf9\xc0\xb0"32768"\r'
     basic = b'\0\x0a' + struct.pack("<H", len(line)) + line
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_bytes(tape_file(0, b"MAGNUM", basic, 10, len(basic))
+    loader = bank_loader(banks,tape_file) if arcade else tape_file(0,b"MAGNUM",basic,10,len(basic))
+    output.write_bytes(loader
                        + tape_file(3, b"RASTER", image, 32768, 32768))
-    print(f"{output} ({len(image)} code/data/reserved bytes)")
+    print(f"{output} ({output.stat().st_size} tape bytes)")
 
 
 def assembler_path():
