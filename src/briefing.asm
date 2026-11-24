@@ -64,13 +64,14 @@ arc_briefing:
     ld a,$57
     call arc_text
     call stage_time_limit
+    call mode_split_seconds
+    ld c,a                     ; save units while testing the tens digit
+    ld a,b
     or a
-    jr z,.open
-    cp 10
-    jr c,.single_digit
-    sub 10
+    ld a,c
+    jr z,.single_digit
     push af
-    ld a,1
+    ld a,b
     ld de,$0d15
     call brief_figure
     pop af
@@ -82,17 +83,6 @@ arc_briefing:
     call brief_figure
     ld ix,brief_secs
     ld de,$1115
-    jr .unit
-.open:
-    ld a,10                     ; N and O follow the digits
-    ld de,$0d15
-    call brief_figure
-    ld a,11
-    ld de,$0d18
-    call brief_figure
-    ld ix,brief_unlimited
-    ld de,$1116
-.unit:
     ld a,$5f
     call arc_text
 
@@ -222,7 +212,6 @@ brief_limit: db "TIME LIMIT",0
 brief_single: db "SHOT",0
 brief_rounds_label: db "SHOTS",0
 brief_secs: db "SECONDS",0
-brief_unlimited: db "LIMIT",0
 brief_start: db "SHOOT HERE TO START",0
 brief_balloon: db $03,$c0,$0f,$f0,$1f,$f8,$3f,$fc,$7f,$fe,$7f,$fe,$e7,$e7,$e7,$e7
     db $ff,$ff,$7f,$fe,$7f,$fe,$3f,$fc,$1f,$f8,$0f,$f0,$06,$60,$0c,$30

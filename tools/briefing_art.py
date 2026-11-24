@@ -59,7 +59,7 @@ def briefing_screen():
 def briefing_figures(font):
     """Pack 24x24 glyphs row-by-row within each character band for the Z80."""
     figures = bytearray()
-    for letter in "0123456789NO":
+    for letter in "0123456789":
         offset = (ord(letter) - 32) * 8
         for row in font[offset:offset + 8]:
             pixels = "".join(bit * 3 for bit in f"{row:08b}")

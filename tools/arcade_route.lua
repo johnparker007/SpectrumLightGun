@@ -39,6 +39,7 @@ local special={
     [5]={{1,4},{2,4}}, [9]={{3},{1}}, [10]={{1,2},{2,4}},
     [12]={{1,4,3,2},{1,2,3,4}}, [15]={{1,4},{1,5}}}
 local types=dofile("rules.lua")
+local limits=dofile("limits.lua")
 local function kind(stage) return types[stage+1] end
 local tour_max=0
 for stage=0,63 do
@@ -80,10 +81,11 @@ end
 timed_stage(1,8,4,1,90,12,5,10)
 timed_stage(15,12,0,5,172,6,6,12)
 timed_stage(16,6,0,6,172,2,4,15)
+timed_stage(1,2,0,4,130,5,6,40) -- linked-lamp puzzle, including 40 -> 39
 -- The final practice page has a single live ticket. Shoot the empty
 -- second row, then enter the last level directly without starting a tour.
-for i=1,16 do add(80,25,1,0,2,0,4) end
-add(80,90,1,0,2,0,4)
+for i=1,15 do add(80,25,1,0,5,0,6) end
+add(80,90,1,0,5,0,6)
 add(80,48,1,1,63,0,6)
 local briefing_phase,briefing_wait=0,0
 local briefs,scenes={},{}
@@ -285,6 +287,10 @@ emu.register_frame_done(function()
         local name=stage==1 and "yard" or stage==2 and "midway" or string.format("stage%02d",stage)
         pending_backdrop=name
         if not scenes[stage] then
+            local seconds=byte("mode_seconds_left")
+            check(seconds==limits[stage+1] and seconds>0,"stage deadline "..stage)
+            local digits=string.char(mem:read_u8(s.mode_seconds),mem:read_u8(s.mode_seconds+1))
+            check(digits==string.format("%2d",seconds),"HUD deadline "..stage)
             snapshot(string.format("stage-%02d",stage+1))
             scenes[stage]=true
         end

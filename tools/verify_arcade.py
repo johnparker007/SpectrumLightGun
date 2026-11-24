@@ -8,7 +8,7 @@ from pathlib import Path
 
 from build import ROOT, assembler_path, build
 from mouse_gun import find_roms
-from fair_banks import emulator_files
+from fair_banks import emulator_files, stage_limits
 from expansion import LEVELS
 from fair_scenery import write_scenery
 
@@ -22,12 +22,13 @@ def check(model, args):
         assert tape == (ROOT/"build/arcade.tap").read_bytes()
         (work/"arc.bin").write_bytes(payload)
         names = ("entry", "arc_poll", "arc_poll_end", "first_ini", "grid_reads_end", "arc_state",
-                 "arc_stage", "nv_previous_ink", "mode_seconds_left", "mode_expired", "arc_tour", "mode_gate", "arc_note", "arc_total", "arc_ammo", "arc_hits", "arc_pos", "arc_hazards", "arc_armed",
+                 "arc_stage", "nv_previous_ink", "mode_seconds_left", "mode_seconds", "mode_expired", "arc_tour", "mode_gate", "arc_note", "arc_total", "arc_ammo", "arc_hits", "arc_pos", "arc_hazards", "arc_armed",
                  "parade_last", "arc_wave_phase", "arc_raw_y", "arc_last_tick", "frame", "arc_alive")
         symbols = dict(re.findall(r"^(\w+): EQU (0x[0-9A-Fa-f]+)$", (work/"arc.sym").read_text(), re.M))
         (work/"labels.lua").write_text("return {"+",".join(k+"="+symbols[k] for k in names)+"}")
         rules = list(range(16))+[r for _,r in LEVELS]
         (work/"rules.lua").write_text("return {"+",".join(map(str,rules))+"}")
+        (work/"limits.lua").write_text("return {"+",".join(map(str,stage_limits()))+"}")
         write_scenery(work, ROOT)
         roms = find_roms(args.rompath, args.mame, work, model)
         script = ROOT/"tools/arcade_route.lua"

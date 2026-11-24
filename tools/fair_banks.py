@@ -16,6 +16,22 @@ def make_bank(scenes):
     return bytes(directory)+b"".join(scenes)
 
 
+def stage_limits():
+    # Seconds per play mechanic, in original ticket order. Leave thinking
+    # time for linked lamps, exact-score arithmetic and memory challenges.
+    base = [18, 20, 15, 16, 24, 40, 12, 18, 18, 10, 20, 16, 10, 28, 7, 32]
+    limits = base.copy()
+    visits = [0] * len(base)
+    for _, rule in LEVELS:
+        visits[rule] += 1
+        # Later variants of a familiar rule tighten by at most three seconds.
+        # The short fuse keeps its advertised seven-second deadline.
+        reduction = 0 if rule == 14 else min(3, visits[rule] - 1)
+        limits.append(base[rule] - reduction)
+    assert len(limits) == 64 and all(1 <= seconds <= 99 for seconds in limits)
+    return limits
+
+
 def make_tables(work):
     lines=["extra_titles:"]
     lines.append("    dw "+",".join(f"extra_title_{i}" for i in range(len(LEVELS))))
@@ -23,13 +39,7 @@ def make_tables(work):
         assert len(title)<=15
         lines.append(f'extra_title_{i}: db "{title}",0')
     lines.append("extra_rules: db "+",".join(str(rule) for title,rule in LEVELS))
-    # Gate and memory rounds need time for all four lanes. Higher tours
-    # shorten the clock while leaving a fresh trigger opportunity per lane.
-    limits=[]
-    for i,(_,rule) in enumerate(LEVELS):
-        base={4:18,6:18,8:16,9:10,10:12,11:16,12:14,13:18,14:11,15:15}.get(rule,16)
-        limits.append(base-i//18-i%3)
-    lines.append("extra_limits: db "+",".join(map(str,limits)))
+    lines.append("stage_limits: db "+",".join(map(str,stage_limits())))
     lines.append("extra_columns:")
     for i in range(len(LEVELS)):
         lines.append("    db "+",".join(str(x//8) for x in layout(i)))

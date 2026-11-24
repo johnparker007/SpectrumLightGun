@@ -203,9 +203,7 @@ arc_begin:
     call arc_text
     call mode_draw
     call arc_draw_ammo
-    ld a,(mode_seconds_left)
-    or a
-    call nz,mode_show_time
+    call mode_show_time
     ld a,(arc_rule)
     cp 1
     call z,arc_nv_sync

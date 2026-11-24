@@ -556,15 +556,17 @@ mode_timer_tick:
 
 mode_show_time:
     ld a,(mode_seconds_left)
-    ld b,' '
-    cp 10
-    jr c,.digit
-    sub 10
-    ld b,'1'
-.digit:
+    call mode_split_seconds
     add a,'0'
     ld (mode_seconds+1),a
     ld a,b
+    or a
+    jr z,.blank
+    add a,'0'
+    jr .tens
+.blank:
+    ld a,' '
+.tens:
     ld (mode_seconds),a
     ld a,(mode_seconds_left)
     cp 4
@@ -575,6 +577,16 @@ mode_show_time:
     ld ix,mode_seconds
     ld de,$0011
     jp arc_text
+    ; A = seconds (0..99). Return B = tens and A = units.
+mode_split_seconds:
+    ld b,0
+.loop:
+    cp 10
+    ret c
+    sub 10
+    inc b
+    jr .loop
+
 mode_seconds: db " 0S",0
 mode_expired: db 0
 mode_seconds_left: db 0
@@ -585,8 +597,6 @@ arc_goal: db 4
 mode_clock: db 0
 mode_gate: db 0
 mode_ink: db $44
-; Seconds of playable time, indexed in ticket order.
-mode_limits: db 0,0,15,0,0,0,12,0,0,0,0,0,10,0,7,0
 mode_previous: db 19,4,3,9,27,14,19,19
 mode_art: dw arc_can
 mode_icons:
@@ -677,9 +687,5 @@ extra_layout:
 
 stage_time_limit:
     ld a,(arc_stage)
-    ld hl,mode_limits
-    cp 16
-    jr c,extra_byte
-    sub 16
-    ld hl,extra_limits
+    ld hl,stage_limits
     jr extra_byte
