@@ -10,6 +10,7 @@ import tempfile
 from functools import reduce
 from pathlib import Path
 
+from briefing_art import briefing_figures, briefing_screen
 from fair_banks import make_bank, make_tables, bank_loader
 from fair_scenery import write_scenery
 
@@ -85,8 +86,13 @@ def build(assembler, output, dx=0, dy=0, symbols=None, snapshot=None, edges=Fals
         work = Path(tmp)
         if arcade:
             z88dk = Path(os.getenv("Z88DK", "C:/z88dk"))
-            (work/"arcade-font.bin").write_bytes(arcade_font(ROOT/"art/fonts/Blokius-Arcade-8.bdf"))
+            font = arcade_font(ROOT/"art/fonts/Blokius-Arcade-8.bdf")
+            (work/"arcade-font.bin").write_bytes(font)
+            (work/"brief-figures.bin").write_bytes(briefing_figures(font))
             zx7 = shutil.which("z88dk-zx7") or z88dk/"bin/z88dk-zx7.exe"
+            board = work/"briefing.scr"
+            board.write_bytes(briefing_screen())
+            subprocess.run([zx7, "-f", board, work/"briefing.zx7"], stdout=subprocess.DEVNULL, check=True)
             scenes = []
             raw_size = 0
             for scene in write_scenery(work, ROOT):

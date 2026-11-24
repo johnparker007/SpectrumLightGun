@@ -228,7 +228,6 @@ emu.register_frame_done(function()
             check(byte("arc_stage")==r[5] and reads==1920,"wrong briefing")
             if briefing_phase==0 then
                 briefs[r[5]]=true
-                if step==2 or step==14 then snapshot(step==2 and "brief-yard" or "brief-wave") end
                 x,y=80,64 -- instruction panel is visible but optically inactive
                 briefing_phase=1
                 reads,batches,held=0,0,true
@@ -239,6 +238,7 @@ emu.register_frame_done(function()
                 briefing_phase=2
             end
             if frames<briefing_wait then return end
+            if step==2 or step==14 then snapshot(step==2 and "brief-yard" or "brief-wave") end
             x,y=100,172
             reads,batches,held=0,0,true
             briefing_phase=3
